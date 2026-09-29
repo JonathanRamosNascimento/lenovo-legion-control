@@ -1,0 +1,52 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+
+authors = ["Legion Control contributors"]
+
+[workspace.dependencies]
+legion-core = { path = "crates/legion-core" }
+legion-hardware = { path = "crates/legion-hardware", default-features = false }
+legion-acpi = { path = "crates/legion-acpi" }
+legion-cpu = { path = "crates/legion-cpu" }
+legion-gpu = { path = "crates/legion-gpu", default-features = false }
+legion-fan = { path = "crates/legion-fan" }
+legion-battery = { path = "crates/legion-battery" }
+legion-thermal = { path = "crates/legion-thermal" }
+legion-profiles = { path = "crates/legion-profiles" }
+legion-dbus = { path = "crates/legion-dbus" }
+legion-i18n = { path = "crates/legion-i18n" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4", features = ["derive"] }
+zbus = { version = "5", default-features = false, features = ["tokio", "blocking-api"] }
+tokio = { version = "1", features = ["rt", "macros", "time", "signal", "sync"] }
+gtk = { version = "0.11", package = "gtk4", features = ["v4_12"] }
+adw = { version = "0.9", package = "libadwaita", features = ["v1_7"] }
+ksni = { version = "0.3", default-features = false, features = ["tokio"] }
+async-channel = "2"
+nvml-wrapper = "0.13"
+tempfile = "3"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

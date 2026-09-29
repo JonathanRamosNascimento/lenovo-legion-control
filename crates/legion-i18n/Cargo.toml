@@ -1,0 +1,13 @@
+[package]
+name = "legion-i18n"
+description = "Translations (en, pt-BR) for the Legion Control user interfaces"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

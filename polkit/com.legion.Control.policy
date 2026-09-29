@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+  Legion Control polkit actions. Install to /usr/share/polkit-1/actions/.
+
+  Everyday actions (power profile, battery charging) are allowed for the
+  user of the active local session, like power-profiles-daemon does.
+  CPU tuning, manual fan control and firmware power limits require an
+  administrator password (cached for a few minutes).
+-->
+<policyconfig>
+  <vendor>Legion Control</vendor>
+
+  <action id="com.legion.Control.set-profile">
+    <description>Change the power profile</description>
+    <description xml:lang="pt_BR">Alterar o perfil de energia</description>
+    <message>Authentication is required to change the power profile</message>
+    <message xml:lang="pt_BR">É necessária autenticação para alterar o perfil de energia</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+
+  <action id="com.legion.Control.battery">
+    <description>Change battery charging settings</description>
+    <description xml:lang="pt_BR">Alterar as configurações de carga da bateria</description>
+    <message>Authentication is required to change battery charging settings</message>
+    <message xml:lang="pt_BR">É necessária autenticação para alterar as configurações de carga da bateria</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+
+  <action id="com.legion.Control.cpu">
+    <description>Change CPU frequency settings</description>
+    <description xml:lang="pt_BR">Alterar as configurações de frequência da CPU</description>
+    <message>Authentication is required to change CPU governor, EPP or turbo</message>
+    <message xml:lang="pt_BR">É necessária autenticação para alterar o governor, o EPP ou o turbo da CPU</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="com.legion.Control.fan">
+    <description>Control the fans manually</description>
+    <description xml:lang="pt_BR">Controlar as ventoinhas manualmente</description>
+    <message>Authentication is required to control the fans manually</message>
+    <message xml:lang="pt_BR">É necessária autenticação para controlar as ventoinhas manualmente</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="com.legion.Control.power-limits">
+    <description>Change firmware power and thermal limits</description>
+    <description xml:lang="pt_BR">Alterar os limites de potência e temperatura do firmware</description>
+    <message>Authentication is required to change firmware power and thermal limits</message>
+    <message xml:lang="pt_BR">É necessária autenticação para alterar os limites de potência e temperatura do firmware</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="com.legion.Control.configure">
+    <description>Change Legion Control settings</description>
+    <description xml:lang="pt_BR">Alterar as configurações do Legion Control</description>
+    <message>Authentication is required to enable or disable experimental hardware controls</message>
+    <message xml:lang="pt_BR">É necessária autenticação para ativar ou desativar controles experimentais de hardware</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+</policyconfig>

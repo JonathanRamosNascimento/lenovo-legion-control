@@ -1,0 +1,66 @@
+# Maintainer: Legion Control contributors
+#
+# Builds from the local source tree this PKGBUILD lives in:
+#   cd packaging/arch/legion-control && makepkg -si
+# For a published release, replace `source` with the release tarball and
+# add its checksum.
+
+pkgname=legion-control
+pkgver=0.1.0
+pkgrel=5
+pkgdesc="Monitor and control Lenovo Legion laptops (daemon, CLI and GTK4 GUI)"
+arch=('x86_64')
+url="https://example.invalid/legion-control" # TODO: set the project URL when published
+license=('MIT')
+depends=('gcc-libs' 'glibc' 'dbus' 'polkit' 'gtk4' 'libadwaita')
+makedepends=('cargo')
+optdepends=(
+  'power-profiles-daemon: preferred backend for quiet/balanced/performance'
+  'nvidia-utils: NVIDIA GPU monitoring (NVML)'
+  'gnome-shell-extension-appindicator: tray icon on GNOME'
+)
+backup=('etc/legion-control/daemon.json')
+install=legion-control.install
+options=('!lto')
+
+_srcroot="$(realpath "${startdir}/../../..")"
+
+prepare() {
+  cd "$_srcroot"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$_srcroot"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR="$srcdir/target"
+  cargo build --frozen --release -p legion-cli -p legion-daemon -p legion-gui
+}
+
+check() {
+  cd "$_srcroot"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR="$srcdir/target"
+  cargo test --frozen --release --workspace --exclude legion-gui
+}
+
+package() {
+  cd "$_srcroot"
+  local t="$srcdir/target/release"
+  install -Dm755 "$t/legionctl"             "$pkgdir/usr/bin/legionctl"
+  install -Dm755 "$t/legion-control-daemon" "$pkgdir/usr/bin/legion-control-daemon"
+  install -Dm755 "$t/legion-control"        "$pkgdir/usr/bin/legion-control"
+
+  install -Dm644 systemd/legion-control.service  "$pkgdir/usr/lib/systemd/system/legion-control.service"
+  install -Dm644 dbus/com.legion.Control.conf    "$pkgdir/usr/share/dbus-1/system.d/com.legion.Control.conf"
+  install -Dm644 polkit/com.legion.Control.policy "$pkgdir/usr/share/polkit-1/actions/com.legion.Control.policy"
+  install -Dm644 data/daemon.json                "$pkgdir/etc/legion-control/daemon.json"
+  install -Dm644 data/com.legion.Control.Gui.desktop "$pkgdir/usr/share/applications/com.legion.Control.Gui.desktop"
+  install -Dm644 data/com.legion.Control.svg     "$pkgdir/usr/share/icons/hicolor/scalable/apps/com.legion.Control.svg"
+
+  install -Dm644 README.md                "$pkgdir/usr/share/doc/legion-control/README.md"
+  install -Dm644 docs/architecture.md     "$pkgdir/usr/share/doc/legion-control/architecture.md"
+  install -Dm644 docs/hardware-support.md "$pkgdir/usr/share/doc/legion-control/hardware-support.md"
+  install -Dm644 LICENSE                  "$pkgdir/usr/share/licenses/legion-control/LICENSE"
+}

@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Legion Control
+GenericName=Laptop Control
+GenericName[pt_BR]=Controle do notebook
+Comment=Monitor and control Lenovo Legion laptops
+Comment[pt_BR]=Monitore e controle notebooks Lenovo Legion
+Exec=legion-control
+Icon=com.legion.Control
+Terminal=false
+Categories=Settings;HardwareSettings;GTK;
+Keywords=Lenovo;Legion;fan;battery;power;profile;
+Keywords[pt_BR]=Lenovo;Legion;ventoinha;bateria;energia;perfil;desempenho;
+StartupNotify=true
+DBusActivatable=false

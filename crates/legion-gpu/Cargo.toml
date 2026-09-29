@@ -1,0 +1,25 @@
+[package]
+name = "legion-gpu"
+description = "GPU detection and NVML monitoring for Legion Control"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[features]
+default = ["nvml"]
+# NVIDIA monitoring through libnvidia-ml.so (loaded at runtime).
+nvml = ["dep:nvml-wrapper"]
+
+[dependencies]
+legion-core.workspace = true
+tracing.workspace = true
+serde.workspace = true
+nvml-wrapper = { workspace = true, optional = true }
+
+[dev-dependencies]
+legion-core = { workspace = true, features = ["testing"] }
+
+[lints]
+workspace = true

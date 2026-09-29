@@ -1,0 +1,12 @@
+# Legion Control udev rules.
+#
+# Intentionally empty: no udev rules are needed.
+#
+# * Every attribute Legion Control reads is world-readable.
+# * Every change is performed by legion-control-daemon (root, sandboxed,
+#   polkit-authorised). Relaxing the permissions of sysfs attributes (e.g.
+#   making platform_profile or fanN_target writable by a group) would bypass
+#   the daemon's validation and polkit checks, so it is deliberately not done.
+#
+# This file is kept as the single place where future, explicitly reviewed
+# rules (e.g. hotplug notifications) would live.

@@ -1,0 +1,13 @@
+post_install() {
+  echo ">> Enable the daemon with:  sudo systemctl enable --now legion-control.service"
+  echo ">> Experimental fan control / power limits: /etc/legion-control/daemon.json"
+}
+
+post_upgrade() {
+  systemctl try-restart legion-control.service >/dev/null 2>&1 || true
+}
+
+pre_remove() {
+  # the daemon returns fan control to the firmware when it stops
+  systemctl disable --now legion-control.service >/dev/null 2>&1 || true
+}

@@ -1,0 +1,17 @@
+[package]
+name = "legion-dbus"
+description = "D-Bus contract (com.legion.Control) shared by the daemon, CLI and GUI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+legion-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+zbus.workspace = true
+
+[lints]
+workspace = true

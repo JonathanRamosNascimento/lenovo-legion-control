@@ -1,0 +1,40 @@
+[package]
+name = "legion-cli"
+description = "legionctl: command line interface for Legion Control"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "legionctl"
+path = "src/main.rs"
+
+[features]
+default = ["nvml"]
+# NVIDIA monitoring through NVML (libnvidia-ml.so loaded at runtime).
+nvml = ["legion-hardware/nvml"]
+
+[dependencies]
+legion-core.workspace = true
+legion-hardware.workspace = true
+legion-profiles.workspace = true
+legion-battery.workspace = true
+legion-fan.workspace = true
+legion-dbus.workspace = true
+legion-i18n.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+legion-core = { workspace = true, features = ["testing"] }
+legion-hardware = { workspace = true, features = ["testing"] }
+serde_json.workspace = true
+
+[lints]
+workspace = true

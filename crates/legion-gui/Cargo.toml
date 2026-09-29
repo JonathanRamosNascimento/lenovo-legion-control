@@ -1,0 +1,36 @@
+[package]
+name = "legion-gui"
+description = "Legion Control: GTK4/libadwaita interface (talks to the daemon over D-Bus only)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[[bin]]
+name = "legion-control"
+path = "src/main.rs"
+
+[features]
+default = ["tray"]
+# StatusNotifierItem tray icon (GNOME needs the AppIndicator extension).
+tray = ["dep:ksni"]
+
+[dependencies]
+legion-core.workspace = true
+legion-dbus.workspace = true
+legion-profiles.workspace = true
+legion-fan.workspace = true
+legion-i18n.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+async-channel.workspace = true
+gtk = { workspace = true }
+adw = { workspace = true }
+ksni = { workspace = true, optional = true, features = ["blocking"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true

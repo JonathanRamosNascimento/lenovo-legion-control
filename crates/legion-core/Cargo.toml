@@ -1,0 +1,25 @@
+[package]
+name = "legion-core"
+description = "Core types, hardware abstraction trait and read-only sysfs helpers for Legion Control"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[features]
+# Enables the fake sysfs builder and the mock controller used by tests in other crates.
+testing = ["dep:tempfile"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tempfile = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

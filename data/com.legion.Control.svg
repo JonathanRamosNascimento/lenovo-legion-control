@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3f4b"/>
+      <stop offset="1" stop-color="#1f2229"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="url(#bg)"/>
+  <!-- stylised gauge -->
+  <path d="M30 84a34 34 0 1 1 68 0" fill="none" stroke="#5a606e" stroke-width="10" stroke-linecap="round"/>
+  <path d="M30 84a34 34 0 0 1 52-28.8" fill="none" stroke="#e2574c" stroke-width="10" stroke-linecap="round"/>
+  <path d="M64 84 88 58" stroke="#f5f5f5" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="64" cy="84" r="8" fill="#f5f5f5"/>
+  <rect x="40" y="98" width="48" height="6" rx="3" fill="#5a606e"/>
+</svg>

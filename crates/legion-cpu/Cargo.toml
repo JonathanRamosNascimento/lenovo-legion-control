@@ -1,0 +1,19 @@
+[package]
+name = "legion-cpu"
+description = "CPU monitoring (read-only) for Legion Control"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+legion-core.workspace = true
+tracing.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+legion-core = { workspace = true, features = ["testing"] }
+
+[lints]
+workspace = true

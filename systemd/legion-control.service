@@ -1,0 +1,66 @@
+# Legion Control daemon.
+#
+# Runs as root because the kernel attributes it changes (platform_profile,
+# conservation_mode, fanN_target, firmware-attributes, cpufreq) are
+# root-owned. Everything else is locked down: no capabilities, no network,
+# read-only filesystem except /sys (ProtectKernelTunables is deliberately
+# off because /sys attributes are the whole point), no device access except
+# the NVIDIA control nodes used by NVML (read-only monitoring).
+#
+# Experimental features are configured in /etc/legion-control/daemon.json.
+
+[Unit]
+Description=Legion Control hardware daemon
+Documentation=file:///usr/share/doc/legion-control/README.md
+After=dbus.service power-profiles-daemon.service
+Requires=dbus.service
+
+[Service]
+Type=dbus
+BusName=com.legion.Control
+ExecStart=/usr/bin/legion-control-daemon
+# zbus' blocking client (used for power-profiles-daemon) starts an internal
+# Tokio runtime with one worker per CPU; two are plenty and keep the thread
+# count well below TasksMax.
+Environment=TOKIO_WORKER_THREADS=2
+Restart=on-failure
+RestartSec=2s
+
+# Resource limits (target: < 50 MB RAM, < 1% CPU idle)
+MemoryMax=64M
+TasksMax=32
+Nice=5
+
+# Sandboxing
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+DevicePolicy=closed
+DeviceAllow=/dev/nvidiactl rw
+DeviceAllow=/dev/nvidia0 rw
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0077
+ConfigurationDirectory=legion-control
+# the daemon persists experimental feature toggles (SetExperimental, polkit
+# action com.legion.Control.configure, admin password required)
+ReadWritePaths=/etc/legion-control
+
+[Install]
+WantedBy=multi-user.target

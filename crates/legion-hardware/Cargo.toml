@@ -1,0 +1,40 @@
+[package]
+name = "legion-hardware"
+description = "System detection, Linux hardware controller, doctor and hardware-scan for Legion Control"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[features]
+# Exposes fixture trees (fake sysfs of real machines) for tests.
+default = ["nvml"]
+# NVIDIA monitoring through NVML.
+nvml = ["legion-gpu/nvml"]
+testing = ["legion-core/testing"]
+
+[dependencies]
+legion-core.workspace = true
+legion-acpi.workspace = true
+legion-cpu.workspace = true
+legion-gpu.workspace = true
+legion-fan.workspace = true
+legion-battery.workspace = true
+legion-thermal.workspace = true
+legion-profiles.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+legion-core = { workspace = true, features = ["testing"] }
+# enables the `fixtures` module for integration tests
+legion-hardware = { path = ".", features = ["testing"] }
+
+[lints]
+workspace = true
+
+[[example]]
+name = "make-fixture"
+required-features = ["testing"]

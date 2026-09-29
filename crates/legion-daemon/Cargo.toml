@@ -1,0 +1,42 @@
+[package]
+name = "legion-daemon"
+description = "legion-control-daemon: privileged D-Bus service of Legion Control"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "legion-control-daemon"
+path = "src/main.rs"
+
+[features]
+default = ["nvml"]
+nvml = ["legion-hardware/nvml", "legion-gpu/nvml"]
+
+[dependencies]
+legion-core.workspace = true
+legion-hardware.workspace = true
+legion-cpu.workspace = true
+legion-gpu.workspace = true
+legion-fan.workspace = true
+legion-battery.workspace = true
+legion-profiles.workspace = true
+legion-dbus.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+zbus.workspace = true
+
+[dev-dependencies]
+legion-core = { workspace = true, features = ["testing"] }
+legion-hardware = { workspace = true, features = ["testing"] }
+legion-profiles.workspace = true
+
+[lints]
+workspace = true
