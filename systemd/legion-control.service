@@ -56,6 +56,9 @@ MemoryDenyWriteExecute=yes
 SystemCallArchitectures=native
 SystemCallFilter=@system-service
 SystemCallFilter=~@privileged @resources
+# libnvidia-ml calls chown() while initialising (device node setup); without
+# this the first start dies with SIGSYS
+SystemCallFilter=@chown
 UMask=0077
 ConfigurationDirectory=legion-control
 # the daemon persists experimental feature toggles (SetExperimental, polkit

@@ -682,9 +682,9 @@ pub fn build(app: &adw::Application, cmd: Sender<Cmd>, page_name: Option<&str>) 
         .build();
     let cpu = card("CPU", "computer-symbolic", false);
     let gpu = card("GPU", "video-display-symbolic", false);
-    let mem = card("Memory", "drive-harddisk-solidstate-symbolic", true);
-    let fans = card("Fans", "weather-windy-symbolic", false);
-    let temps = card("Storage", "temperature-symbolic", false);
+    let mem = card("Memory", "legion-memory-symbolic", true);
+    let fans = card("Fans", "legion-fan-symbolic", false);
+    let temps = card("Storage", "legion-temperature-symbolic", false);
     let bat = card("Battery", "battery-symbolic", true);
     for c in [&cpu, &gpu, &mem, &fans, &temps, &bat] {
         flow.insert(&c.root, -1);
@@ -820,12 +820,12 @@ pub fn build(app: &adw::Application, cmd: Sender<Cmd>, page_name: Option<&str>) 
     for (w, name, title, icon) in [
         (&dash, "dashboard", "Dashboard", "speedometer-symbolic"),
         (&bat_page, "battery", "Battery", "battery-symbolic"),
-        (&fan_page, "fans", "Fans", "weather-windy-symbolic"),
+        (&fan_page, "fans", "Fans", "legion-fan-symbolic"),
         (
             &perf_page,
             "performance",
             "Performance",
-            "power-profile-performance-symbolic",
+            "legion-performance-symbolic",
         ),
         (
             &custom.root,

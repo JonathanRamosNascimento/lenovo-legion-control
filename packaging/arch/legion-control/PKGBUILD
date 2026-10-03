@@ -7,7 +7,7 @@
 
 pkgname=legion-control
 pkgver=0.1.0
-pkgrel=5
+pkgrel=7
 pkgdesc="Monitor and control Lenovo Legion laptops (daemon, CLI and GTK4 GUI)"
 arch=('x86_64')
 url="https://example.invalid/legion-control" # TODO: set the project URL when published
@@ -58,6 +58,9 @@ package() {
   install -Dm644 data/daemon.json                "$pkgdir/etc/legion-control/daemon.json"
   install -Dm644 data/com.legion.Control.Gui.desktop "$pkgdir/usr/share/applications/com.legion.Control.Gui.desktop"
   install -Dm644 data/com.legion.Control.svg     "$pkgdir/usr/share/icons/hicolor/scalable/apps/com.legion.Control.svg"
+  for i in data/icons/*.svg; do
+    install -Dm644 "$i" "$pkgdir/usr/share/icons/hicolor/symbolic/apps/$(basename "$i")"
+  done
 
   install -Dm644 README.md                "$pkgdir/usr/share/doc/legion-control/README.md"
   install -Dm644 docs/architecture.md     "$pkgdir/usr/share/doc/legion-control/architecture.md"
