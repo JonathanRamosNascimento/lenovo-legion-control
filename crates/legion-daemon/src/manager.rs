@@ -12,7 +12,7 @@ use legion_dbus::{actions, to_fdo};
 use legion_profiles::CustomProfile;
 
 use crate::polkit::{Policy, authorize};
-use crate::worker::{Events, Hw};
+use crate::worker::{Events, Hw, Worker};
 
 /// Interface implementation.
 pub struct Manager {
@@ -68,6 +68,17 @@ impl Manager {
             })
             .await
             .map_err(to_fdo)?;
+        Self::emit(emitter, &ev).await;
+        Ok(())
+    }
+
+    /// Like [`Self::change`], for setters that also update the worker's state.
+    async fn change_worker(
+        &self,
+        emitter: &SignalEmitter<'_>,
+        f: impl FnOnce(&mut Worker) -> legion_core::Result<Events> + Send + 'static,
+    ) -> fdo::Result<()> {
+        let ev = self.hw.run(f).await.map_err(to_fdo)?;
         Self::emit(emitter, &ev).await;
         Ok(())
     }
@@ -142,7 +153,8 @@ impl Manager {
     ) -> fdo::Result<()> {
         let p: legion_core::PowerProfile = profile.parse().map_err(to_fdo)?;
         self.auth(conn, &hdr, actions::PROFILE).await?;
-        self.change(&emitter, move |c| c.set_power_profile(p)).await
+        self.change_worker(&emitter, move |w| w.set_profile(p))
+            .await
     }
 
     async fn set_battery_conservation(
@@ -259,7 +271,8 @@ impl Manager {
         epp: String,
     ) -> fdo::Result<()> {
         self.auth(conn, &hdr, actions::CPU).await?;
-        self.change(&emitter, move |c| c.set_cpu_epp(&epp)).await
+        self.change_worker(&emitter, move |w| w.set_cpu_epp(&epp))
+            .await
     }
 
     async fn set_cpu_governor(

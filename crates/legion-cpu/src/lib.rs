@@ -408,6 +408,12 @@ fn set_on_all_policies(
     Ok(())
 }
 
+/// Distinct energy performance preference values currently set across the
+/// policies (empty when the CPU driver has no EPP).
+pub fn current_epp(root: &SysRoot) -> Vec<String> {
+    collect_distinct(root, &policies(root), "energy_performance_preference")
+}
+
 /// Sets the energy performance preference on every policy.
 pub fn set_epp(root: &SysRoot, epp: &str) -> legion_core::Result<()> {
     set_on_all_policies(

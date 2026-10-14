@@ -105,7 +105,13 @@ pub struct Worker {
     fan_errors: u32,
     last_safety: Option<String>,
     last: Last,
+    /// Keep the CPU energy preference at [`MAX_POWER_EPP`] while the firmware
+    /// stays in `max-power` (armed by [`Worker::set_profile`]).
+    hold_epp: bool,
 }
+
+/// Energy performance preference of the `max-power` mode.
+const MAX_POWER_EPP: &str = "performance";
 
 fn changed(a: Option<f64>, b: Option<f64>) -> bool {
     match (a, b) {
@@ -141,6 +147,7 @@ impl Worker {
             fan_errors: 0,
             last_safety: None,
             last: Last::default(),
+            hold_epp: false,
         }
     }
 
@@ -158,6 +165,10 @@ impl Worker {
     pub fn tick(&mut self, resample_cpu: bool) -> Events {
         let root = self.ctrl.root().clone();
         let mut ev = Events::default();
+
+        // before the CPU is read, so the status already shows the held value
+        let platform = legion_profiles::read_platform_profile(&root);
+        self.hold_max_power_epp(platform.as_ref().map(|p| p.current));
 
         let cpu = if resample_cpu || self.status.is_none() {
             let s = legion_cpu::sample(&root);
@@ -191,10 +202,7 @@ impl Worker {
             };
             self.ppd_at = Some(Instant::now());
         }
-        let profile = legion_profiles::combine(
-            legion_profiles::read_platform_profile(&root),
-            self.ppd.clone(),
-        );
+        let profile = legion_profiles::combine(platform, self.ppd.clone());
         let thermal = self.ctrl.temperatures_with(&self.gpu);
         let fans = legion_fan::read_fans(&root);
 
@@ -235,6 +243,58 @@ impl Worker {
             battery: self.battery.clone(),
         });
         ev
+    }
+
+    /// Re-asserts the `max-power` CPU energy preference.
+    ///
+    /// power-profiles-daemon has no `max-power` profile: a moment after the
+    /// firmware switches to it, the daemon notices a value it does not know and
+    /// writes its own EPP (`balance_power` on battery), so a single write
+    /// would be lost. While the hold is armed the value is corrected on every
+    /// tick, and the hold ends as soon as the firmware leaves `max-power`.
+    fn hold_max_power_epp(&mut self, current: Option<PowerProfile>) {
+        if !self.hold_epp {
+            return;
+        }
+        match current {
+            Some(PowerProfile::MaxPower) => {}
+            Some(_) => {
+                self.hold_epp = false;
+                return;
+            }
+            None => return,
+        }
+        let epp = legion_cpu::current_epp(self.ctrl.root());
+        if epp.iter().all(|e| e == MAX_POWER_EPP) {
+            return;
+        }
+        match self.ctrl.set_cpu_epp(MAX_POWER_EPP) {
+            Ok(()) => tracing::info!(
+                target: "legion_audit",
+                epp = MAX_POWER_EPP,
+                previous = ?epp,
+                "max-power: CPU energy preference restored"
+            ),
+            Err(e) => {
+                tracing::warn!(error = %e, "max-power: cannot keep the CPU energy preference");
+                self.hold_epp = false;
+            }
+        }
+    }
+
+    /// Changes the logical power profile. `max-power` also pins the CPU energy
+    /// preference to `performance` (see [`Self::hold_max_power_epp`]).
+    pub fn set_profile(&mut self, profile: PowerProfile) -> Result<Events> {
+        self.ctrl.set_power_profile(profile)?;
+        self.hold_epp = profile == PowerProfile::MaxPower;
+        Ok(self.after_change())
+    }
+
+    /// Sets the CPU energy preference; an explicit choice ends the `max-power` hold.
+    pub fn set_cpu_epp(&mut self, epp: &str) -> Result<Events> {
+        self.ctrl.set_cpu_epp(epp)?;
+        self.hold_epp = false;
+        Ok(self.after_change())
     }
 
     /// Refresh after a change: re-reads profile and battery immediately.
@@ -350,6 +410,8 @@ impl Worker {
         if let Some(m) = &p.fan_mode {
             legion_fan::validate_mode(self.ctrl.root(), m)?;
         }
+        // a saved profile states every value it wants, EPP included
+        self.hold_epp = false;
         let ctrl = self.ctrl.clone();
         let mut fan = None;
         let done = custom::apply(&ctrl, p, |m| {
@@ -545,6 +607,55 @@ mod tests {
         w.shutdown();
         assert_eq!(target(&fs, 1), "0");
         assert_eq!(target(&fs, 2), "0");
+    }
+
+    fn epp(fs: &legion_core::testing::FakeSysfs) -> String {
+        fs.root()
+            .read("/sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference")
+            .unwrap()
+    }
+
+    #[test]
+    fn max_power_holds_the_epp_against_power_profiles_daemon() {
+        let fs = fixtures::legion_5_15iax10();
+        let mut w = worker(&fs, false);
+        w.tick(true);
+        w.ctrl().set_cpu_epp("balance_power").unwrap();
+
+        w.set_profile(PowerProfile::MaxPower).unwrap();
+        assert_eq!(epp(&fs), "performance");
+
+        // ppd notices the profile it does not know and writes its own EPP
+        w.ctrl().set_cpu_epp("balance_power").unwrap();
+        w.tick(true);
+        assert_eq!(epp(&fs), "performance");
+        assert_eq!(w.status().cpu.epp, ["performance"]);
+
+        // leaving max-power ends the hold
+        w.set_profile(PowerProfile::Balanced).unwrap();
+        w.ctrl().set_cpu_epp("balance_power").unwrap();
+        w.tick(true);
+        assert_eq!(epp(&fs), "balance_power");
+    }
+
+    #[test]
+    fn explicit_epp_or_saved_profile_ends_the_max_power_hold() {
+        let fs = fixtures::legion_5_15iax10();
+        let mut w = worker(&fs, false);
+        w.set_profile(PowerProfile::MaxPower).unwrap();
+
+        w.set_cpu_epp("balance_performance").unwrap();
+        w.tick(true);
+        assert_eq!(epp(&fs), "balance_performance");
+
+        w.set_profile(PowerProfile::MaxPower).unwrap();
+        let p = CustomProfile {
+            cpu_epp: Some("balance_power".into()),
+            ..Default::default()
+        };
+        w.apply_profile(&p).unwrap();
+        w.tick(true);
+        assert_eq!(epp(&fs), "balance_power");
     }
 
     #[test]

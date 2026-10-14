@@ -40,6 +40,14 @@ controle experimental, desligado por padrão em `/etc/legion-control/daemon.json
 | Limite numérico de carga | — | sem `charge_control_end_threshold` | — |
 | Cor/brilho do teclado | W⚠ | controlador USB ITE `048d:c195` ("ITE Device(8258)"), protocolo proprietário **Spectrum** (ver [Teclado](#teclado-iluminação)); nenhum LED class de teclado | engenharia reversa da comunidade (LenovoLegionToolkit, MIT) + leituras e escritas verificadas nesta máquina |
 
+**`max-power` e o power-profiles-daemon:** o ppd não conhece `max-power`. Ao
+gravá-lo em `platform_profile`, o ppd registra `should not be reached` e,
+alguns segundos depois, escreve o EPP dele (`balance_power` na bateria). Por
+isso o daemon, depois de trocar para o modo Extremo, mantém o EPP em
+`performance` (corrige a cada ciclo) até o firmware sair de `max-power`, ou
+até você escolher outro EPP ou aplicar um perfil salvo. Troca feita por
+`Fn+Q` não passa pelo daemon e não recebe essa correção.
+
 Drivers de kernel observados: `lenovo_wmi_gamezone`, `lenovo_wmi_other`,
 `lenovo_wmi_capdata`, `lenovo_wmi_events`, `lenovo_wmi_hotkey_utilities`,
 `ideapad_acpi`, `ideapad_wmi`. 29 blocos WMI sem driver são listados no
