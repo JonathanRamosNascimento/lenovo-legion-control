@@ -2,6 +2,7 @@
 
 use crate::capabilities::{Capability, HardwareCapabilities};
 use crate::error::{HwError, Result};
+use crate::keyboard::{KeyboardInfo, Rgb};
 use crate::model::{
     BatteryInfo, CpuInfo, FanInfo, GpuInfo, MemoryInfo, PowerLimits, Status, SystemInfo,
     ThermalInfo,
@@ -97,6 +98,26 @@ pub trait HardwareController {
     /// Enables/disables turbo boost.
     fn set_turbo(&self, _enabled: bool) -> Result<()> {
         Err(HwError::NotSupported("turbo control".into()))
+    }
+
+    /// Built-in keyboard backlight (experimental).
+    fn get_keyboard_info(&self) -> Result<KeyboardInfo> {
+        Err(HwError::NotSupported("keyboard backlight".into()))
+    }
+
+    /// Sets one steady colour on the whole keyboard.
+    fn set_keyboard_color(&self, _color: Rgb) -> Result<()> {
+        Err(HwError::NotSupported("keyboard backlight".into()))
+    }
+
+    /// Sets the keyboard backlight brightness level.
+    fn set_keyboard_brightness(&self, _level: u8) -> Result<()> {
+        Err(HwError::NotSupported("keyboard backlight".into()))
+    }
+
+    /// Puts back the keyboard effect that was saved before the first change.
+    fn restore_keyboard(&self) -> Result<()> {
+        Err(HwError::NotSupported("keyboard backlight".into()))
     }
 
     /// Everything at once.

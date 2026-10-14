@@ -5,6 +5,7 @@ use std::io::{BufRead, BufReader};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
+use legion_core::keyboard::{KeyboardInfo, Rgb};
 use legion_core::model::{DaemonInfo, FanMode, Status};
 use legion_core::profile::PowerProfile;
 use legion_dbus::Client;
@@ -52,7 +53,7 @@ fn daemon_over_dbus() {
     let fs = legion_hardware::fixtures::legion_5_15iax10();
     fs.file(
         "/etc/legion-control/daemon.json",
-        r#"{"enable_fan_control": true, "enable_power_limits": true}"#,
+        r#"{"enable_fan_control": true, "enable_power_limits": true, "enable_keyboard_rgb": true}"#,
     );
     let root = fs.root();
     let daemon = Command::new(env!("CARGO_BIN_EXE_legion-control-daemon"))
@@ -157,6 +158,60 @@ fn daemon_over_dbus() {
     let captured: legion_profiles::CustomProfile = client.get(|p| p.capture_profile()).unwrap();
     assert_eq!(captured.platform_profile.as_deref(), Some("balanced"));
     assert_eq!(captured.fan_mode, Some(FanMode::Fixed { rpm: 3000 }));
+
+    // keyboard backlight (experimental): colour, backup, restore, gating
+    let kb: KeyboardInfo = client.get(|p| p.get_keyboard_info()).unwrap();
+    assert_eq!((kb.usb_id.as_str(), kb.enabled), ("048d:c195", true));
+    let st = kb.state.unwrap();
+    assert_eq!(
+        (st.effect.as_str(), st.color, st.backup),
+        ("rainbow-wave", None, false)
+    );
+    client.call(|p| p.set_keyboard_color("#ff8000")).unwrap();
+    let st = client
+        .get::<KeyboardInfo>(|p| p.get_keyboard_info())
+        .unwrap()
+        .state
+        .unwrap();
+    assert_eq!(
+        (st.effect.as_str(), st.color),
+        ("static", Some(Rgb::new(255, 128, 0)))
+    );
+    assert!(st.backup);
+    assert!(root.exists("/var/lib/legion-control/keyboard-profile-1.hex"));
+    client.call(|p| p.set_keyboard_color("blue")).unwrap();
+    client.call(|p| p.set_keyboard_brightness(7)).unwrap();
+    let st = client
+        .get::<KeyboardInfo>(|p| p.get_keyboard_info())
+        .unwrap()
+        .state
+        .unwrap();
+    assert_eq!((st.brightness, st.color), (7, Some(Rgb::new(0, 0, 255))));
+    assert!(matches!(
+        client
+            .call(|p| p.set_keyboard_color("not-a-colour"))
+            .unwrap_err(),
+        legion_core::HwError::InvalidValue(_)
+    ));
+    assert!(client.call(|p| p.set_keyboard_brightness(10)).is_err());
+    client.call(|p| p.restore_keyboard()).unwrap();
+    let st = client
+        .get::<KeyboardInfo>(|p| p.get_keyboard_info())
+        .unwrap()
+        .state
+        .unwrap();
+    assert_eq!((st.effect.as_str(), st.backup), ("rainbow-wave", false));
+    assert!(client.call(|p| p.restore_keyboard()).is_err()); // nothing saved any more
+    // switching the feature off: no state is read and changes are refused
+    client
+        .call(|p| p.set_experimental("enable_keyboard_rgb", false))
+        .unwrap();
+    let kb: KeyboardInfo = client.get(|p| p.get_keyboard_info()).unwrap();
+    assert!(!kb.enabled && kb.state.is_none());
+    assert!(matches!(
+        client.call(|p| p.set_keyboard_color("red")).unwrap_err(),
+        legion_core::HwError::NotSupported(_)
+    ));
 
     // configuration toggles are persisted
     client

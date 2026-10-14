@@ -308,5 +308,9 @@ pub fn legion_5_15iax10() -> FakeSysfs {
              10de  NVIDIA Corporation\n\t2d18  GB206M [GeForce RTX 5070 Max-Q / Mobile]\n",
         )
         .file("/sys/class/leds/platform::fnlock/brightness", "0");
+
+    // built-in keyboard controller: ITE 048d:c195, two USB interfaces
+    // (real report descriptors; fixture roots use a simulated controller)
+    legion_keyboard::sim::add_legion_5_15iax10_keyboard(&fs);
     fs
 }

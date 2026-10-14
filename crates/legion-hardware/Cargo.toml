@@ -12,7 +12,7 @@ authors.workspace = true
 default = ["nvml"]
 # NVIDIA monitoring through NVML.
 nvml = ["legion-gpu/nvml"]
-testing = ["legion-core/testing"]
+testing = ["legion-core/testing", "legion-keyboard/testing"]
 
 [dependencies]
 legion-core.workspace = true
@@ -23,6 +23,7 @@ legion-fan.workspace = true
 legion-battery.workspace = true
 legion-thermal.workspace = true
 legion-profiles.workspace = true
+legion-keyboard.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true

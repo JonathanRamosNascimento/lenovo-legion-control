@@ -36,7 +36,8 @@ Detalhes por recurso e a origem de cada interface:
 | Controle de ventoinha (fixo e curva) | `lenovo_wmi_other` `fanN_target` | ⚠️ experimental, desligado por padrão |
 | Limites de potência/temperatura (PL1, PL2, cTGP…) | firmware-attributes `lenovo-wmi-other` | ⚠️ experimental, desligado por padrão, só no perfil *custom* |
 | Perfis personalizados | `~/.config/legion-control/profiles/*.json` | ✅ |
-| Troca de MUX / RGB do teclado | — | ❌ não suportado |
+| Cor e brilho do teclado | protocolo proprietário do controlador ITE (Spectrum), com backup do efeito original | ⚠ experimental, desligado por padrão |
+| Troca de MUX | — | ❌ não suportado |
 
 ## Instalação (Arch / CachyOS)
 
@@ -120,10 +121,39 @@ e campo numérico, mais o atalho para a curva das ventoinhas.
   documentação do kernel, **só têm efeito no perfil `custom`** e o BIOS os
   sobrescreve ao trocar de perfil.
 
+* `enable_keyboard_rgb` — permite mudar a cor e o brilho do teclado (GUI,
+  página **Teclado**, ou `legionctl config set enable_keyboard_rgb on`; pede a
+  senha de administrador). Usa um protocolo proprietário do controlador do
+  teclado, sem documentação da Lenovo: veja a seção **Teclado** abaixo e
+  [docs/hardware-support.md](docs/hardware-support.md). Desligado, a interface
+  do teclado nem é consultada.
+
 Reinicie o daemon após editar: `sudo systemctl restart legion-control`.
 
+## Teclado (cor e brilho) — experimental
+
+```sh
+legionctl config set enable_keyboard_rgb on      # uma vez (senha de administrador)
+legionctl keyboard                               # estado: efeito, perfil, brilho
+legionctl keyboard color '#ff8000'               # ou: red, blue, purple… (aspas por causa do #)
+legionctl keyboard brightness 5                  # 0 (apagado) a 9
+legionctl keyboard restore                       # devolve o efeito que o teclado tinha
+```
+
+* A cor é uma **cor fixa em todo o teclado**, gravada no **perfil ativo** do
+  próprio teclado (sobrevive a reboots; nada é reaplicado no boot). Efeitos,
+  zonas e animações não são suportados.
+* Antes da primeira alteração, o efeito original do perfil é salvo em
+  `/var/lib/legion-control/` e `keyboard restore` o recoloca (funciona mesmo
+  com o recurso desligado depois).
+* Cada alteração grava na memória flash do controlador: use-a para
+  configurar, não para animar. Nada é gravado se o teclado já mostra a cor.
+* Hoje só o controlador `048d:c195` (Legion 5 15IAX10) está na lista
+  verificada; outros modelos aparecem como "detectado, não usado".
+* GUI: página **Teclado** (ativar, cor, predefinições, brilho, restaurar).
+
 Permissões (polkit): perfil e bateria são liberados para o usuário da
-sessão ativa; CPU, ventoinhas e limites de potência pedem senha de
+sessão ativa; CPU, ventoinhas, limites de potência e teclado pedem senha de
 administrador.
 
 ## Comandos
@@ -136,7 +166,8 @@ legionctl gpu status [--wake-gpu]
 legionctl fan status | auto | fixed <rpm> | curve <arquivo.json> | curve --example
 legionctl battery [status] | conservation on|off | charge-type <tipo> | threshold <n>
 legionctl power-limit [list] | set <nome> <valor>
-legionctl config [show] | set enable_fan_control|enable_power_limits on|off
+legionctl keyboard [status] | color <#rrggbb|nome> | brightness <0-9> | restore
+legionctl config [show] | set enable_fan_control|enable_power_limits|enable_keyboard_rgb on|off
 legionctl custom list | show <nome> | save <nome> [-d desc] | import <nome> <arq> | apply <nome> | delete <nome>
 legionctl thermal | daemon status | version
 legionctl --json <comando>
@@ -193,8 +224,11 @@ Pacote de diagnóstico: `scripts/collect-debug.sh`. Logs:
 * Só drivers/atributos documentados são escritos (lista explícita de
   atributos de `lenovo-wmi-other`; ventoinha só no chip `lenovo_wmi_other`).
 * Nenhum comando de shell, nenhum caminho vindo do usuário/GUI/D-Bus.
+* Teclado: só um dispositivo USB não-removível da lista verificada, com o
+  descritor HID esperado; relatórios sempre com o tamanho que o descritor
+  declara; backup do efeito original antes de gravar.
 * Daemon com polkit por ação, sandbox systemd (sem capabilities, sem rede,
-  FS somente leitura exceto `/sys`), recursos limitados.
+  FS somente leitura exceto `/sys` e `/var/lib/legion-control`), recursos limitados.
 * A GUI nunca acessa `/sys`: só D-Bus.
 * Números de série, UUIDs e MACs nunca são lidos.
 
@@ -203,12 +237,14 @@ Pacote de diagnóstico: `scripts/collect-debug.sh`. Logs:
 * Escritas em hardware real foram validadas por testes com árvores `/sys`
   falsas e pela documentação do kernel; controle de ventoinha e limites de
   potência continuam **experimentais** até serem confirmados no hardware.
-* Modo gráfico (MUX) apenas detectado; RGB não suportado.
+* Modo gráfico (MUX) apenas detectado.
+* Teclado: só cor fixa + brilho, via protocolo proprietário (experimental). O
+  padrão HID LampArray existe no controlador, mas é inerte neste firmware.
 * Qual ventoinha é CPU/GPU não é informado pelo driver.
 
 ## Desenvolvimento
 
-Workspace com 14 crates — veja [docs/architecture.md](docs/architecture.md)
+Workspace com 15 crates — veja [docs/architecture.md](docs/architecture.md)
 e [docs/development.md](docs/development.md).
 
 ```sh

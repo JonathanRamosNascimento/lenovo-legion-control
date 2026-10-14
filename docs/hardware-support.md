@@ -38,12 +38,85 @@ controle experimental, desligado por padrão em `/etc/legion-control/daemon.json
 | Modo de conservação | R/W | `VPC2004:00/conservation_mode` (preferido); `charge_types` `Long_Life` | `sysfs-platform-ideapad-laptop`, `sysfs-class-power` |
 | Tipo de carga | R/W | `charge_types`: Fast / Standard / Long_Life | `sysfs-class-power` |
 | Limite numérico de carga | — | sem `charge_control_end_threshold` | — |
-| RGB teclado | — | nenhum LED class de teclado (controladores USB HID não são sondados) | — |
+| Cor/brilho do teclado | W⚠ | controlador USB ITE `048d:c195` ("ITE Device(8258)"), protocolo proprietário **Spectrum** (ver [Teclado](#teclado-iluminação)); nenhum LED class de teclado | engenharia reversa da comunidade (LenovoLegionToolkit, MIT) + leituras e escritas verificadas nesta máquina |
 
 Drivers de kernel observados: `lenovo_wmi_gamezone`, `lenovo_wmi_other`,
 `lenovo_wmi_capdata`, `lenovo_wmi_events`, `lenovo_wmi_hotkey_utilities`,
 `ideapad_acpi`, `ideapad_wmi`. 29 blocos WMI sem driver são listados no
 relatório sem interpretação e **nunca** são usados.
+
+## Teclado (iluminação)
+
+O teclado interno é um controlador **ITE 8258** (`048d:c195`, USB, declarado
+não-removível pelo firmware: `removable=fixed`) com **duas interfaces HID**:
+
+| Interface | Nó (nesta máquina) | Descritor |
+|---|---|---|
+| 0 | `hidraw5` | teclado + relatórios proprietários: página `0xff89`, relatórios `0xCC` (32 B), `0x5A` (15 B) e `0x07` (**959 B** de payload) |
+| 1 | `hidraw6` | **HID LampArray** padrão (página `0x59`, relatórios 1–6), 24 lâmpadas RGB + intensidade, uma fileira de 24 zonas verticais |
+
+### LampArray padrão — testado e **inerte** neste firmware
+
+O padrão USB-IF (HUT 1.4) é a interface ideal, e o código foi escrito e
+testado contra o descritor real. No hardware, porém, todas as
+transferências são aceitas sem erro e **nenhuma muda a iluminação**,
+mesmo com: handshake de descoberta (atributos → atributos de cada lâmpada →
+`AutonomousMode=0`), re-enumeração USB do controlador, `intensity` 0/1/255,
+atualizações por intervalo (`0x05`) e por lote (`0x04`) com
+`LampUpdateComplete`, e polaridade invertida de `AutonomousMode`. (BIOS
+`S2CN26WW`, kernel 7.2.) O `AutonomousMode` também não é legível (EPIPE).
+Por isso o LampArray **não** é usado.
+
+### Protocolo Spectrum (interface 0, relatório 7) — experimental
+
+Documentação pública da Lenovo: **nenhuma**. Os formatos vêm da engenharia
+reversa feita pela comunidade no *LenovoLegionToolkit* (MIT,
+`LenovoLegionToolkit.Lib/Native.cs`) e foram confirmados nesta máquina:
+
+* Todo pacote é um *feature report* `7` de 960 bytes (1 de id + 959 — o
+  tamanho exato que o descritor declara; só é enviado se o descritor bater).
+  Requisição: `07 <op> C0 03 <param> …`; resposta: `07 <op> <tam> 00 <payload>`
+  (curta: 5–7 bytes nas consultas simples).
+* Operações usadas: compatibilidade `0xD1`, brilho `0xCD`/`0xCE` (0–9),
+  perfil ativo `0xCA`, troca de perfil `0xC8`, layout `0xC4`, leitura de efeito
+  `0xCC`, escrita de efeito `0xCB`.
+* O teclado guarda **6 perfis** de iluminação na própria memória (flash); a
+  cor e o brilho **sobrevivem a reboots**, então nada é reaplicado no boot.
+* Um efeito é `06 01 <tipo> 02 <vel> 03 <sentido-horário> 04 <direção> 05
+  <modo-de-cor> 06 00`, seguido de lista de cores (`n` + RGB) e lista de
+  teclas (`n` + `u16`). Cor fixa = tipo `11` (`Always`), 1 cor, lista de
+  teclas. Neste modelo "todas as teclas" é a lista explícita `1..24` (o
+  código `0x65` do LenovoLegionToolkit não aparece).
+* Perfis observados: 1 = onda arco-íris, 3 = áudio, 4/5 = suave, 6 = **luzes
+  apagadas** (tipo 255). Os pedidos dos perfis 2 e 5 devolveram o conteúdo dos
+  perfis 1 e 4.
+
+**Armadilha confirmada em hardware:** pedir o efeito de um perfil
+(`0xCC <n>`) também **ativa** esse perfil — ler o perfil 6 apagou o teclado.
+Por isso o código só lê o perfil **ativo** (nenhuma leitura troca de
+perfil), e a leitura "bruta" de diagnóstico recusa `0xCC`.
+
+Verificado nesta máquina (Legion 5 15IAX10, via `Keyboard`/`spectrum-ctl`):
+compatibilidade, brilho, perfil ativo, layout (`9 × 22`), leitura do efeito
+ativo, brilho 3 ↔ 9, cor fixa vermelho e azul, e **restauração byte a byte**
+do efeito original (arco-íris).
+
+Salvaguardas no Legion Control:
+
+1. desligado por padrão (`enable_keyboard_rgb`); desligado, a interface
+   proprietária **não é tocada** (nem leituras);
+2. só dispositivos USB ITE não-removíveis, com o descritor esperado e com id
+   na lista verificada (`048d:c195`; outros ids aparecem como "detectado");
+3. o efeito original do perfil é salvo em
+   `/var/lib/legion-control/keyboard-profile-N.hex` **antes** da primeira
+   sobrescrita (se não der para salvar, nada é gravado) e
+   `legionctl keyboard restore` o devolve;
+4. nada é gravado quando o teclado já mostra a cor pedida (a gravação é em
+   flash); sem animações nem reaplicação periódica.
+
+Ainda não validado: persistência após reboot/suspensão (pelo desenho do
+protocolo deve persistir), interação com `Fn+Espaço`, e outros ids ITE
+(`c197` etc.) — rode `legionctl hardware-scan` e abra uma issue.
 
 ### O que ainda precisa de validação no hardware real
 

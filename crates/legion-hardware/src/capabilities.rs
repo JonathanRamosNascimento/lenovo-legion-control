@@ -46,6 +46,8 @@ pub struct Inventory {
     pub acpi: AcpiReport,
     /// Keyboard backlight LED class devices.
     pub keyboard_leds: Vec<String>,
+    /// Built-in keyboard controller (USB HID, vendor protocol).
+    pub keyboard: legion_keyboard::Detection,
     /// Fans that can be controlled (`chip/fanN`).
     pub controllable_fans: Vec<String>,
     /// Configuration in effect.
@@ -88,6 +90,7 @@ pub fn gather(ctrl: &LinuxController) -> Inventory {
         battery: legion_battery::read_battery_info(root),
         acpi: legion_acpi::scan(root),
         keyboard_leds: keyboard_leds(root),
+        keyboard: legion_keyboard::detect(root),
         controllable_fans: legion_fan::controllable_fans(root)
             .iter()
             .map(|f| format!("hwmon:{}/fan{}_target", f.chip.name, f.channel))
@@ -424,20 +427,47 @@ pub fn from_inventory(inv: &Inventory) -> Vec<Capability> {
         });
     }
 
-    out.push(if inv.keyboard_leds.is_empty() {
-        Capability::new(
+    out.push(match &inv.keyboard {
+        legion_keyboard::Detection::Found(n) => {
+            let (state, note) = gated(inv.config.enable_keyboard_rgb, "enable_keyboard_rgb");
+            Capability::new(
+                "rgb_control",
+                state,
+                Some(format!(
+                    "{} ({}): Lenovo Spectrum vendor protocol",
+                    n.dev_path(),
+                    n.usb_id()
+                )),
+                format!(
+                    "{note}; undocumented vendor protocol; verified on this model; \
+                     profile stored in the keyboard (flash); original effect is backed up"
+                ),
+            )
+        }
+        legion_keyboard::Detection::Unverified(n) => Capability::new(
+            "rgb_control",
+            S::Detected,
+            Some(format!("{} ({})", n.dev_path(), n.usb_id())),
+            "keyboard controller found but not in the verified list; not used",
+        ),
+        legion_keyboard::Detection::Rejected(why) => Capability::new(
             "rgb_control",
             S::Unsupported,
             None,
-            "no keyboard LED class device (USB HID keyboard controllers are not probed)",
-        )
-    } else {
-        Capability::new(
+            format!("keyboard controller does not match the expected protocol: {why}"),
+        ),
+        legion_keyboard::Detection::Absent if !inv.keyboard_leds.is_empty() => Capability::new(
             "rgb_control",
             S::Detected,
             Some(inv.keyboard_leds.join(", ")),
             "LED class device present; not used",
-        )
+        ),
+        legion_keyboard::Detection::Absent => Capability::new(
+            "rgb_control",
+            S::Unsupported,
+            None,
+            "no keyboard LED class device and no built-in USB keyboard controller found",
+        ),
     });
 
     out.push(Capability::new(

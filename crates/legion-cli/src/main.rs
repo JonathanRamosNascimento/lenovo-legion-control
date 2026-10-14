@@ -24,7 +24,7 @@ use legion_profiles::store::ProfileStore;
 
 use backend::Backend;
 use cli::{
-    BatteryCmd, Cli, Command, ConfigCmd, CpuCmd, CustomCmd, DaemonCmd, FanCmd, GpuCmd,
+    BatteryCmd, Cli, Command, ConfigCmd, CpuCmd, CustomCmd, DaemonCmd, FanCmd, GpuCmd, KeyboardCmd,
     PowerLimitCmd,
 };
 use legion_i18n::tr;
@@ -223,6 +223,27 @@ fn run(cli: Cli) -> Result<ExitCode> {
                 let b = Backend::select(&cli);
                 b.set_threshold(v)?;
                 done(json, &b, &format!("Charge threshold set to {v}%"))?;
+            }
+        },
+        Command::Keyboard { cmd } => match cmd {
+            None | Some(KeyboardCmd::Status) => {
+                let info = Backend::select(&cli).keyboard_info()?;
+                emit(json, &info, render::keyboard)?;
+            }
+            Some(KeyboardCmd::Color { color }) => {
+                let b = Backend::select(&cli);
+                b.set_keyboard_color(*color)?;
+                done(json, &b, &format!("Keyboard colour set to {color}"))?;
+            }
+            Some(KeyboardCmd::Brightness { level }) => {
+                let b = Backend::select(&cli);
+                b.set_keyboard_brightness(*level)?;
+                done(json, &b, &format!("Keyboard brightness set to {level}"))?;
+            }
+            Some(KeyboardCmd::Restore) => {
+                let b = Backend::select(&cli);
+                b.restore_keyboard()?;
+                done(json, &b, "Keyboard effect restored")?;
             }
         },
         Command::PowerLimit { cmd } => match cmd {

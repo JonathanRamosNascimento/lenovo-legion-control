@@ -73,6 +73,18 @@
     </defaults>
   </action>
 
+  <action id="com.legion.Control.keyboard">
+    <description>Change the keyboard backlight</description>
+    <description xml:lang="pt_BR">Alterar a iluminação do teclado</description>
+    <message>Authentication is required to change the keyboard backlight (experimental: it is stored in the keyboard controller)</message>
+    <message xml:lang="pt_BR">É necessária autenticação para alterar a iluminação do teclado (experimental: ela é gravada no controlador do teclado)</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
   <action id="com.legion.Control.configure">
     <description>Change Legion Control settings</description>
     <description xml:lang="pt_BR">Alterar as configurações do Legion Control</description>

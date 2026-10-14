@@ -19,6 +19,7 @@ legion-gpu = { path = "crates/legion-gpu", default-features = false }
 legion-fan = { path = "crates/legion-fan" }
 legion-battery = { path = "crates/legion-battery" }
 legion-thermal = { path = "crates/legion-thermal" }
+legion-keyboard = { path = "crates/legion-keyboard" }
 legion-profiles = { path = "crates/legion-profiles" }
 legion-dbus = { path = "crates/legion-dbus" }
 legion-i18n = { path = "crates/legion-i18n" }
@@ -37,6 +38,9 @@ adw = { version = "0.9", package = "libadwaita", features = ["v1_7"] }
 ksni = { version = "0.3", default-features = false, features = ["tokio"] }
 async-channel = "2"
 nvml-wrapper = "0.13"
+# hidraw feature reports (HIDIOCSFEATURE) behind a safe API: first-party code stays `unsafe`-free.
+# `linux-native-basic-udev` = pure-Rust backend, no libudev / C library to link.
+hidapi = { version = "2.6", default-features = false, features = ["linux-native-basic-udev"] }
 tempfile = "3"
 
 [workspace.lints.rust]

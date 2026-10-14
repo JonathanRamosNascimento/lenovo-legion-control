@@ -19,6 +19,7 @@ pub mod controller;
 pub mod doctor;
 pub mod error;
 pub mod hwmon;
+pub mod keyboard;
 pub mod model;
 pub mod profile;
 pub mod support;

@@ -54,6 +54,7 @@ fn enabled(fs: &legion_core::testing::FakeSysfs) -> LinuxController {
     let mut o = ControllerOptions::fixture(fs.root());
     o.config.enable_fan_control = true;
     o.config.enable_power_limits = true;
+    o.config.enable_keyboard_rgb = true;
     LinuxController::new(o)
 }
 
@@ -196,12 +197,14 @@ fn capabilities_match_observed_hardware() {
     assert_eq!(state("cpu_tuning"), CapabilityState::Supported);
     assert_eq!(state("cpu_power_limit"), CapabilityState::Detected);
     assert_eq!(state("gpu_power_limit"), CapabilityState::Detected);
-    assert_eq!(state("rgb_control"), CapabilityState::Unsupported);
+    // experimental, off by default (the controller is detected through sysfs)
+    assert_eq!(state("rgb_control"), CapabilityState::Detected);
     assert_eq!(state("gpu_mode"), CapabilityState::ReadOnly);
     let caps = capabilities::detect(&enabled(&fs));
     let state = |id: &str| caps.iter().find(|c| c.id == id).unwrap().state;
     assert_eq!(state("fan_control"), CapabilityState::Supported);
     assert_eq!(state("cpu_power_limit"), CapabilityState::Supported);
+    assert_eq!(state("rgb_control"), CapabilityState::Supported);
     let summary = c.get_capabilities().unwrap();
     assert!(summary.power_profiles && !summary.battery_threshold && summary.battery_conservation);
 }
@@ -241,6 +244,9 @@ fn report_json() {
     assert_eq!(v["features"]["power_profiles"], true);
     assert_eq!(v["features"]["battery_threshold"], false);
     assert_eq!(v["hwmon"].as_array().unwrap().len(), 6);
+    let kb = &v["keyboard_controllers"];
+    assert_eq!(kb[0]["usb_id"], "048d:c195");
+    assert_eq!(kb[0]["feature_report_7_bytes"], 959);
     assert!(v["acpi"]["wmi_devices"].as_array().unwrap().len() >= 7);
     let text = v.to_string();
     for forbidden in ["serial", "uuid"] {

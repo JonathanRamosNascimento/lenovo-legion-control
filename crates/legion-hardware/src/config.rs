@@ -19,6 +19,10 @@ pub struct Config {
     pub enable_fan_control: bool,
     /// Allow writing firmware power/thermal limits (`lenovo-wmi-other`).
     pub enable_power_limits: bool,
+    /// Allow changing the keyboard backlight through the vendor (Spectrum)
+    /// protocol of the keyboard controller. While off, that interface is
+    /// not touched at all.
+    pub enable_keyboard_rgb: bool,
     /// CPU temperature (°C) at which manual fan control is abandoned and the
     /// firmware takes over again.
     pub fan_safety_cpu_c: f64,
@@ -31,6 +35,7 @@ impl Default for Config {
         Self {
             enable_fan_control: false,
             enable_power_limits: false,
+            enable_keyboard_rgb: false,
             fan_safety_cpu_c: 95.0,
             fan_safety_gpu_c: 85.0,
         }
@@ -54,13 +59,18 @@ impl Config {
     }
 
     /// Experimental feature flags that can be toggled at runtime.
-    pub const FLAGS: [&'static str; 2] = ["enable_fan_control", "enable_power_limits"];
+    pub const FLAGS: [&'static str; 3] = [
+        "enable_fan_control",
+        "enable_power_limits",
+        "enable_keyboard_rgb",
+    ];
 
     /// Sets one of [`Config::FLAGS`].
     pub fn set_flag(&mut self, name: &str, value: bool) -> legion_core::Result<()> {
         match name {
             "enable_fan_control" => self.enable_fan_control = value,
             "enable_power_limits" => self.enable_power_limits = value,
+            "enable_keyboard_rgb" => self.enable_keyboard_rgb = value,
             other => {
                 return Err(legion_core::HwError::InvalidValue(format!(
                     "unknown setting {other:?} (allowed: {})",
@@ -108,7 +118,7 @@ mod tests {
     fn defaults_are_safe() {
         let fs = FakeSysfs::new();
         let c = Config::load(&fs.root());
-        assert!(!c.enable_fan_control && !c.enable_power_limits);
+        assert!(!c.enable_fan_control && !c.enable_power_limits && !c.enable_keyboard_rgb);
         fs.file(CONFIG_PATH, "{ not json");
         assert_eq!(Config::load(&fs.root()), Config::default());
         fs.file(
@@ -127,9 +137,10 @@ mod tests {
         let fs = FakeSysfs::new();
         let mut c = Config::default();
         c.set_flag("enable_power_limits", true).unwrap();
+        c.set_flag("enable_keyboard_rgb", true).unwrap();
         assert!(c.set_flag("enable_ec_writes", true).is_err());
         c.save(&fs.root()).unwrap();
         let back = Config::load(&fs.root());
-        assert!(back.enable_power_limits && !back.enable_fan_control);
+        assert!(back.enable_power_limits && back.enable_keyboard_rgb && !back.enable_fan_control);
     }
 }

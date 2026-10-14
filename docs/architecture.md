@@ -64,7 +64,7 @@
   devolve o controle ao firmware (alvo 0).
 * polkit: `CheckAuthorization` com sujeito `system-bus-name` do chamador,
   uma ação por categoria (`com.legion.Control.set-profile`, `.battery`,
-  `.cpu`, `.fan`, `.power-limits`). `ApplyProfile` exige todas as ações que
+  `.cpu`, `.fan`, `.power-limits`, `.keyboard`). `ApplyProfile` exige todas as ações que
   o perfil toca. Voltar a ventoinha para automático não exige autorização.
 
 ## Interface D-Bus
@@ -80,13 +80,35 @@ GetPowerLimits, CaptureProfile`
 Setters: `SetProfile(s)`, `SetBatteryConservation(b)`, `SetChargeType(s)`,
 `SetChargeThreshold(y)`, `SetFanMode(s json)`,
 `SetFirmwareAttribute(s, x)`, `SetCpuEpp(s)`, `SetCpuGovernor(s)`,
-`SetTurbo(b)`, `ApplyProfile(s json) → s`.
+`SetTurbo(b)`, `SetKeyboardColor(s)`, `SetKeyboardBrightness(y)`,
+`RestoreKeyboard()`, `ApplyProfile(s json) → s`.
 
 Sinais: `ProfileChanged(s)`, `TemperatureChanged(s)`, `BatteryChanged(s)`,
 `HardwareChanged()`.
 
 Erros: `org.freedesktop.DBus.Error.{NotSupported, InvalidArgs,
 AccessDenied, Failed}` com mensagem legível.
+
+## Teclado
+
+`legion-keyboard` é a única parte que escreve em um dispositivo que **não** é
+`/sys`: *feature reports* HID em `/dev/hidrawN`. As regras são as mesmas das
+demais escritas, adaptadas:
+
+* **detecção sem privilégio**: `/sys/class/hidraw/*/device/{uevent,report_descriptor}`
+  e o atributo `removable` do dispositivo USB; só ITE (`048d`), não-removível,
+  com o relatório `7` de 959 bytes na coleção `0xff89/0x07` e id verificado;
+* **validar antes de enviar**: nenhum relatório é enviado se o descritor não
+  bater (`spectrum::check_descriptor`); respostas curtas/estranhas são erro;
+* **uma sessão por operação**: abre o nó, confere a compatibilidade, opera e
+  fecha; o `hidapi` fica restrito ao transporte (o código próprio continua
+  `unsafe`-free);
+* **só o perfil ativo** é lido/gravado e o conteúdo anterior é entregue ao
+  chamador *antes* da gravação (backup em `/var/lib/legion-control`);
+* **desligado por padrão** (`enable_keyboard_rgb`): desligado, o dispositivo
+  proprietário nem é aberto;
+* testes e `--sysroot` usam `SimSpectrum` (controlador simulado) no lugar do
+  `hidraw`.
 
 ## Crates
 
@@ -101,6 +123,7 @@ AccessDenied, Failed}` com mensagem legível.
 | `legion-battery` | bateria, conservação, tipo de carga, limite |
 | `legion-thermal` | thermal zones + hwmon |
 | `legion-profiles` | platform_profile, ppd, `CustomProfile`, armazenamento |
+| `legion-keyboard` | cor/brilho do teclado: parser de descritor HID, protocolo Spectrum, descoberta via sysfs, transporte `hidraw` (via `hidapi`), simulador |
 | `legion-dbus` | contrato D-Bus compartilhado |
 | `legion-i18n` | traduções (en, pt-BR) aplicadas na apresentação (CLI/GUI) |
 | `legion-daemon` | `legion-control-daemon` |

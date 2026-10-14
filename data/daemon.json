@@ -1,6 +1,7 @@
 {
   "enable_fan_control": false,
   "enable_power_limits": false,
+  "enable_keyboard_rgb": false,
   "fan_safety_cpu_c": 95.0,
   "fan_safety_gpu_c": 85.0
 }

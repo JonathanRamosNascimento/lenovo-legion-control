@@ -10,6 +10,7 @@
 
 use anyhow::{Result, anyhow};
 
+use legion_core::keyboard::{KeyboardInfo, Rgb};
 use legion_core::model::{DaemonInfo, FanMode, PowerLimits};
 use legion_core::{HardwareController, HwError, PowerProfile, SysRoot};
 use legion_dbus::{Bus, Client};
@@ -104,6 +105,39 @@ impl Backend {
         self.run(
             |c| c.call(|x| x.set_charge_threshold(v)),
             |d| d.set_charge_threshold(v),
+        )
+    }
+
+    /// Keyboard backlight state.
+    pub fn keyboard_info(&self) -> Result<KeyboardInfo> {
+        match self {
+            Backend::Daemon(c) => c.get(|x| x.get_keyboard_info()).map_err(hint),
+            Backend::Direct(d) => d.get_keyboard_info().map_err(hint),
+        }
+    }
+
+    /// Keyboard colour.
+    pub fn set_keyboard_color(&self, color: Rgb) -> Result<()> {
+        let text = color.to_string();
+        self.run(
+            |c| c.call(|x| x.set_keyboard_color(&text)),
+            |d| d.set_keyboard_color(color),
+        )
+    }
+
+    /// Keyboard brightness.
+    pub fn set_keyboard_brightness(&self, level: u8) -> Result<()> {
+        self.run(
+            |c| c.call(|x| x.set_keyboard_brightness(level)),
+            |d| d.set_keyboard_brightness(level),
+        )
+    }
+
+    /// Restores the saved keyboard effect.
+    pub fn restore_keyboard(&self) -> Result<()> {
+        self.run(
+            |c| c.call(|x| x.restore_keyboard()),
+            |d| d.restore_keyboard(),
         )
     }
 

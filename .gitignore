@@ -1,5 +1,7 @@
 hardware-report.json
 legion-debug-*/
+# manual keyboard test tool (crates/legion-keyboard/examples/spectrum-ctl)
+keyboard-backup.hex
 
 # Rust
 /target/

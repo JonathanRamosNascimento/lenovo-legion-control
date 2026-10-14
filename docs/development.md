@@ -44,10 +44,25 @@ dbus-run-session -- sh -c "
 apenas para desenvolvimento; no barramento de sistema o daemon exige root
 e usa polkit.
 
-A GUI também aceita `--page <dashboard|battery|fans|performance|profiles|hardware>`.
+A GUI também aceita `--page <dashboard|battery|fans|performance|custom|keyboard|profiles|hardware>`.
 Para capturas sem tocar na área de trabalho, use o backend Broadway:
 `gtk4-broadwayd --port 8087 :7` e
 `GDK_BACKEND=broadway BROADWAY_DISPLAY=:7 GDK_DEBUG=no-portals legion-control --session`.
+
+## Teclado em hardware real (sem daemon)
+
+`legion-keyboard` traz um controle manual que usa exatamente o mesmo código do
+daemon, útil para validar um modelo novo (como root):
+
+```sh
+cargo build -p legion-keyboard --example spectrum-ctl
+sudo target/debug/examples/spectrum-ctl status            # só leitura
+sudo target/debug/examples/spectrum-ctl color '#ff0000'   # cria keyboard-backup.hex na pasta atual
+sudo target/debug/examples/spectrum-ctl restore
+```
+
+Cuidado: nunca peça o efeito de um perfil que não seja o ativo — isso também
+o ativa (veja `docs/hardware-support.md`).
 
 ## Logs
 

@@ -7,7 +7,7 @@
 
 pkgname=legion-control
 pkgver=0.1.0
-pkgrel=7
+pkgrel=9
 pkgdesc="Monitor and control Lenovo Legion laptops (daemon, CLI and GTK4 GUI)"
 arch=('x86_64')
 url="https://example.invalid/legion-control" # TODO: set the project URL when published

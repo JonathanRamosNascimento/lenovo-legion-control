@@ -1,8 +1,10 @@
 //! [`HardwareController`] implementation for Linux.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use legion_core::capabilities::Capability;
+use legion_core::keyboard::{KeyboardInfo, Rgb};
 use legion_core::model::{
     BatteryInfo, CpuInfo, FanInfo, GpuInfo, GpuVendor, MemoryInfo, PowerLimits, SystemInfo,
     ThermalInfo,
@@ -10,6 +12,7 @@ use legion_core::model::{
 use legion_core::profile::{PowerProfile, PowerProfileState};
 use legion_core::{HardwareController, HwError, Result, SysRoot};
 use legion_gpu::GpuOptions;
+use legion_keyboard::{HidrawOpener, Opener, sim::SimOpener};
 use legion_profiles::ProfileAction;
 
 use crate::config::Config;
@@ -68,6 +71,7 @@ impl ControllerOptions {
 #[derive(Debug, Clone)]
 pub struct LinuxController {
     opts: ControllerOptions,
+    keyboard_opener: Arc<dyn Opener>,
 }
 
 impl LinuxController {
@@ -76,7 +80,26 @@ impl LinuxController {
         if !opts.root.is_host() {
             opts.host_services = false;
         }
-        Self { opts }
+        // fixture roots have no /dev/hidraw*: use the simulated controller
+        let keyboard_opener: Arc<dyn Opener> = if opts.root.is_host() {
+            Arc::new(HidrawOpener)
+        } else {
+            Arc::new(SimOpener::default())
+        };
+        Self {
+            opts,
+            keyboard_opener,
+        }
+    }
+
+    /// Replaces how the keyboard controller is reached (tests).
+    pub fn with_keyboard_opener(mut self, opener: Arc<dyn Opener>) -> Self {
+        self.keyboard_opener = opener;
+        self
+    }
+
+    pub(crate) fn keyboard_opener(&self) -> Arc<dyn Opener> {
+        self.keyboard_opener.clone()
     }
 
     /// Controller for the real machine with default options.
@@ -252,6 +275,22 @@ impl HardwareController for LinuxController {
             )));
         }
         legion_fan::set_target(&self.opts.root, fan, rpm)
+    }
+
+    fn get_keyboard_info(&self) -> Result<KeyboardInfo> {
+        self.keyboard_info_impl()
+    }
+
+    fn set_keyboard_color(&self, color: Rgb) -> Result<()> {
+        self.set_keyboard_color_impl(color)
+    }
+
+    fn set_keyboard_brightness(&self, level: u8) -> Result<()> {
+        self.set_keyboard_brightness_impl(level)
+    }
+
+    fn restore_keyboard(&self) -> Result<()> {
+        self.restore_keyboard_impl()
     }
 
     fn set_cpu_epp(&self, epp: &str) -> Result<()> {

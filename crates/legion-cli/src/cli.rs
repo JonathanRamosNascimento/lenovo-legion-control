@@ -4,6 +4,8 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
+use legion_core::keyboard::Rgb;
+
 /// Monitor and control Lenovo Legion laptops on Linux.
 #[derive(Debug, Parser)]
 #[command(name = "legionctl", version, about, long_about = None)]
@@ -79,6 +81,11 @@ pub enum Command {
     Battery {
         #[command(subcommand)]
         cmd: Option<BatteryCmd>,
+    },
+    /// Built-in keyboard backlight colour and brightness (experimental).
+    Keyboard {
+        #[command(subcommand)]
+        cmd: Option<KeyboardCmd>,
     },
     /// Firmware power / thermal limits (lenovo-wmi-other).
     PowerLimit {
@@ -196,6 +203,26 @@ pub enum BatteryCmd {
     },
 }
 
+/// `keyboard` subcommands.
+#[derive(Debug, Subcommand)]
+pub enum KeyboardCmd {
+    /// Backlight state (default).
+    Status,
+    /// One steady colour on the whole keyboard (stored in the keyboard).
+    Color {
+        /// `#rrggbb`, `rrggbb`, `#rgb` or a name (white, red, orange, yellow,
+        /// green, cyan, blue, purple, pink). Quote `#` in the shell.
+        color: Rgb,
+    },
+    /// Backlight brightness level (0 = off, see `keyboard status` for the maximum).
+    Brightness {
+        /// Level.
+        level: u8,
+    },
+    /// Put back the effect the keyboard had before the first colour change.
+    Restore,
+}
+
 /// `power-limit` subcommands.
 #[derive(Debug, Subcommand)]
 pub enum PowerLimitCmd {
@@ -217,7 +244,7 @@ pub enum ConfigCmd {
     Show,
     /// Enable/disable an experimental feature (asks for the administrator password).
     Set {
-        /// enable_fan_control | enable_power_limits
+        /// enable_fan_control | enable_power_limits | enable_keyboard_rgb
         name: String,
         /// on | off
         state: OnOff,
@@ -330,6 +357,41 @@ mod tests {
                 cmd: CustomCmd::Save { .. }
             }
         ));
+    }
+
+    #[test]
+    fn parses_keyboard() {
+        let c = Cli::try_parse_from(["legionctl", "keyboard", "color", "#ff8000"]).unwrap();
+        assert!(matches!(
+            c.command,
+            Command::Keyboard {
+                cmd: Some(KeyboardCmd::Color { color }),
+            } if color == Rgb::new(255, 128, 0)
+        ));
+        let c = Cli::try_parse_from(["legionctl", "keyboard", "brightness", "5"]).unwrap();
+        assert!(matches!(
+            c.command,
+            Command::Keyboard {
+                cmd: Some(KeyboardCmd::Brightness { level: 5 })
+            }
+        ));
+        assert!(Cli::try_parse_from(["legionctl", "keyboard", "restore"]).is_ok());
+        assert!(matches!(
+            Cli::try_parse_from(["legionctl", "keyboard"])
+                .unwrap()
+                .command,
+            Command::Keyboard { cmd: None }
+        ));
+        for bad in [
+            &["keyboard", "color", "teal"][..],
+            &["keyboard", "color"],
+            &["keyboard", "brightness", "300"],
+            &["keyboard", "brightness", "-1"],
+        ] {
+            let mut a = vec!["legionctl"];
+            a.extend_from_slice(bad);
+            assert!(Cli::try_parse_from(a).is_err(), "{bad:?}");
+        }
     }
 
     #[test]

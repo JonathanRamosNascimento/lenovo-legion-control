@@ -6,10 +6,12 @@
 //! Options:
 //! * `--hidden`  start in the tray (used by the autostart entry);
 //! * `--session` talk to a daemon on the session bus (development);
-//! * `--page NAME` open on a given page (development).
+//! * `--page NAME` open on a given page (development): `dashboard`, `battery`,
+//!   `fans`, `performance`, `custom`, `keyboard`, `profiles`, `hardware`.
 
 mod autostart;
 mod custom_page;
+mod keyboard_page;
 mod settings;
 #[cfg(feature = "tray")]
 mod tray;

@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 
 use legion_core::PowerProfile;
 use legion_core::capabilities::Capability;
+use legion_core::keyboard::{KeyboardInfo, Rgb};
 use legion_core::model::{DaemonInfo, FanMode, PowerLimits, Status};
 use legion_dbus::{Bus, Client};
 use legion_profiles::CustomProfile;
@@ -41,6 +42,15 @@ pub enum Cmd {
     ApplyProfile(String),
     /// Delete a saved profile.
     DeleteProfile(String),
+    /// Keyboard colour.
+    KeyboardColor(Rgb),
+    /// Keyboard brightness level.
+    KeyboardBrightness(u8),
+    /// Restore the keyboard effect saved before the first change.
+    KeyboardRestore,
+    /// The keyboard page appeared / disappeared: only query the keyboard
+    /// controller while it is on screen.
+    KeyboardVisible(bool),
 }
 
 /// Everything the UI shows.
@@ -71,6 +81,8 @@ pub enum Msg {
     Failed(String),
     /// A command started and may wait for authentication.
     Busy(bool),
+    /// Keyboard backlight state (or why it is not available).
+    Keyboard(Box<Result<KeyboardInfo, String>>),
 }
 
 struct State {
@@ -81,7 +93,12 @@ struct State {
     limits: PowerLimits,
     limits_at: Option<Instant>,
     last_connect: Option<Instant>,
+    keyboard_visible: bool,
+    keyboard_at: Option<Instant>,
 }
+
+/// How often the keyboard state is refreshed while its page is visible.
+const KEYBOARD_INTERVAL: Duration = Duration::from_secs(5);
 
 fn describe(e: legion_core::HwError) -> String {
     match e {
@@ -102,6 +119,8 @@ pub fn run(bus: Bus, rx: Receiver<Cmd>, tx: async_channel::Sender<Msg>) {
         limits: PowerLimits::default(),
         limits_at: None,
         last_connect: None,
+        keyboard_visible: false,
+        keyboard_at: None,
     };
     let store = ProfileStore::user().ok();
     loop {
@@ -136,6 +155,18 @@ pub fn run(bus: Bus, rx: Receiver<Cmd>, tx: async_channel::Sender<Msg>) {
             continue;
         };
         if let Some(cmd) = cmd {
+            match &cmd {
+                Cmd::KeyboardVisible(v) => {
+                    st.keyboard_visible = *v;
+                    st.keyboard_at = None; // refresh as soon as it appears
+                }
+                // anything that may have changed the keyboard
+                Cmd::KeyboardColor(_)
+                | Cmd::KeyboardBrightness(_)
+                | Cmd::KeyboardRestore
+                | Cmd::SetExperimental(..) => st.keyboard_at = None,
+                _ => {}
+            }
             let _ = tx.send_blocking(Msg::Busy(true));
             let res = execute(&client, store.as_ref(), cmd);
             let _ = tx.send_blocking(Msg::Busy(false));
@@ -149,6 +180,15 @@ pub fn run(bus: Bus, rx: Receiver<Cmd>, tx: async_channel::Sender<Msg>) {
                     let _ = tx.send_blocking(Msg::Failed(e));
                 }
             }
+        }
+        if st.keyboard_visible
+            && st
+                .keyboard_at
+                .is_none_or(|t| t.elapsed() >= KEYBOARD_INTERVAL)
+        {
+            st.keyboard_at = Some(Instant::now());
+            let info = client.get(|p| p.get_keyboard_info()).map_err(describe);
+            let _ = tx.send_blocking(Msg::Keyboard(Box::new(info)));
         }
         match snapshot(&client, &mut st, store.as_ref()) {
             Ok(s) => {
@@ -258,6 +298,20 @@ fn execute(
             call(&|x| x.set_turbo(on))?;
             Ok(Some(format!("Turbo {}", if on { "on" } else { "off" })))
         }
+        Cmd::KeyboardColor(c) => {
+            call(&|x| x.set_keyboard_color(&c.to_string()))?;
+            Ok(Some(format!("Keyboard colour set to {c}")))
+        }
+        Cmd::KeyboardBrightness(level) => {
+            call(&|x| x.set_keyboard_brightness(level))?;
+            Ok(Some(format!("Keyboard brightness set to {level}")))
+        }
+        Cmd::KeyboardRestore => {
+            call(&|x| x.restore_keyboard())?;
+            Ok(Some("Keyboard effect restored".into()))
+        }
+        // handled by the loop, not an action on the daemon
+        Cmd::KeyboardVisible(_) => Ok(None),
         Cmd::SaveProfile(name) => {
             let store = store.ok_or("cannot determine the profile directory")?;
             let p: CustomProfile = client.get(|x| x.capture_profile()).map_err(describe)?;

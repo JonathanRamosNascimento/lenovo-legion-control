@@ -1,0 +1,24 @@
+[package]
+name = "legion-keyboard"
+description = "Built-in keyboard backlight colour (HID LampArray) for Legion Control"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[features]
+# Fake-sysfs helpers for fixtures (`sim::add_node`).
+testing = ["legion-core/testing"]
+
+[dependencies]
+legion-core.workspace = true
+hidapi.workspace = true
+serde.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+legion-core = { workspace = true, features = ["testing"] }
+
+[lints]
+workspace = true

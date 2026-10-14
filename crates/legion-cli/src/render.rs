@@ -5,6 +5,7 @@ use std::io::IsTerminal;
 
 use legion_core::capabilities::{Capability, CapabilityState};
 use legion_core::doctor::{CheckStatus, DoctorReport};
+use legion_core::keyboard::KeyboardInfo;
 use legion_core::model::*;
 use legion_core::profile::{PowerProfileState, ProfileBackend};
 use legion_hardware::report::HardwareReport;
@@ -427,6 +428,47 @@ pub fn battery(b: &BatteryInfo) -> String {
     o
 }
 
+/// `legionctl keyboard`.
+pub fn keyboard(k: &KeyboardInfo) -> String {
+    let mut o = head("Keyboard backlight");
+    row(
+        &mut o,
+        "Controller",
+        format!("{} ({}, {})", k.device, k.usb_id, k.node),
+    );
+    row(
+        &mut o,
+        "Control",
+        if k.enabled {
+            "enabled (experimental)"
+        } else {
+            "disabled — set \"enable_keyboard_rgb\": true in /etc/legion-control/daemon.json"
+        },
+    );
+    if let Some(s) = &k.state {
+        row(
+            &mut o,
+            "Brightness",
+            format!("{} / {}", s.brightness, k.max_brightness),
+        );
+        row(&mut o, "Profile", s.profile.to_string());
+        row(
+            &mut o,
+            "Effect",
+            match s.color {
+                Some(c) => format!("{} {c}", s.effect),
+                None => s.effect.clone(),
+            },
+        );
+        row(
+            &mut o,
+            "Original effect saved",
+            if s.backup { "yes" } else { "no" },
+        );
+    }
+    o
+}
+
 /// `legionctl thermal`.
 pub fn thermal(t: &ThermalInfo) -> String {
     let mut o = head("Temperatures");
@@ -703,6 +745,7 @@ pub fn config(c: &legion_hardware::Config) -> String {
     let onoff = |b: bool| if b { "enabled" } else { "disabled" };
     row(&mut o, "enable_fan_control", onoff(c.enable_fan_control));
     row(&mut o, "enable_power_limits", onoff(c.enable_power_limits));
+    row(&mut o, "enable_keyboard_rgb", onoff(c.enable_keyboard_rgb));
     row(
         &mut o,
         "fan_safety_cpu_c",

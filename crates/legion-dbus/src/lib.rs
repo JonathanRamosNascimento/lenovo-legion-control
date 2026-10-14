@@ -40,6 +40,8 @@ pub mod actions {
     pub const FAN: &str = "com.legion.Control.fan";
     /// Firmware power / thermal limits.
     pub const POWER_LIMITS: &str = "com.legion.Control.power-limits";
+    /// Keyboard backlight colour / brightness (experimental).
+    pub const KEYBOARD: &str = "com.legion.Control.keyboard";
     /// Change the daemon configuration (experimental feature gates).
     pub const CONFIGURE: &str = "com.legion.Control.configure";
 }
@@ -95,12 +97,21 @@ mod proxy {
         fn set_cpu_governor(&self, governor: &str) -> zbus::Result<()>;
         /// Turbo boost.
         fn set_turbo(&self, enabled: bool) -> zbus::Result<()>;
+        /// `KeyboardInfo` (the vendor interface is only queried when
+        /// `enable_keyboard_rgb` is on).
+        fn get_keyboard_info(&self) -> zbus::Result<String>;
+        /// One steady colour on the whole keyboard (`#rrggbb` or a name).
+        fn set_keyboard_color(&self, color: &str) -> zbus::Result<()>;
+        /// Keyboard backlight brightness level.
+        fn set_keyboard_brightness(&self, level: u8) -> zbus::Result<()>;
+        /// Puts back the keyboard effect saved before the first change.
+        fn restore_keyboard(&self) -> zbus::Result<()>;
         /// Applies a `CustomProfile` (JSON); returns the list of changes (JSON array).
         fn apply_profile(&self, profile_json: &str) -> zbus::Result<String>;
         /// Current settings as a `CustomProfile` (JSON).
         fn capture_profile(&self) -> zbus::Result<String>;
         /// Enables/disables an experimental feature (`enable_fan_control`,
-        /// `enable_power_limits`) and saves `/etc/legion-control/daemon.json`.
+        /// `enable_power_limits`, `enable_keyboard_rgb`) and saves `/etc/legion-control/daemon.json`.
         fn set_experimental(&self, feature: &str, enabled: bool) -> zbus::Result<()>;
 
         /// Logical profile changed.

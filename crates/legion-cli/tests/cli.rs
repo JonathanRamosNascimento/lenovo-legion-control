@@ -165,6 +165,79 @@ fn write_commands_change_the_fixture() {
 }
 
 #[test]
+fn keyboard_commands() {
+    let fs = fixtures::legion_5_15iax10();
+    let root = fs.root();
+    let backup = "/var/lib/legion-control/keyboard-profile-1.hex";
+    let ok = |args: &[&str]| {
+        let out = legionctl(fs.path(), args);
+        assert!(
+            out.status.success(),
+            "{args:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    };
+    let fails = |args: &[&str]| {
+        let out = legionctl(fs.path(), args);
+        assert_eq!(out.status.code(), Some(1), "{args:?} should fail");
+        String::from_utf8_lossy(&out.stderr).into_owned()
+    };
+
+    // detected through sysfs, but off by default: nothing is read or written
+    let v = json(fs.path(), &["keyboard"]);
+    assert_eq!(v["usb_id"], "048d:c195");
+    assert_eq!(v["node"], "hidraw5");
+    assert_eq!(v["enabled"], false);
+    assert!(v["state"].is_null());
+    assert!(fails(&["keyboard", "color", "red"]).contains("enable_keyboard_rgb"));
+    assert!(fails(&["keyboard", "brightness", "3"]).contains("enable_keyboard_rgb"));
+    let text = String::from_utf8(legionctl(fs.path(), &["keyboard"]).stdout).unwrap();
+    assert!(
+        text.contains("Keyboard backlight") && text.contains("disabled"),
+        "{text}"
+    );
+
+    ok(&["config", "set", "enable_keyboard_rgb", "on"]);
+    let v = json(fs.path(), &["keyboard", "status"]);
+    assert_eq!(v["state"]["effect"], "rainbow-wave");
+    assert_eq!(v["state"]["backup"], false);
+    assert_eq!(v["max_brightness"], 9);
+
+    // each invocation talks to its own simulated controller; what persists
+    // between them is the saved original effect
+    ok(&["keyboard", "color", "#ff8000"]);
+    assert!(root.exists(backup));
+    ok(&["keyboard", "color", "blue"]);
+    assert_eq!(json(fs.path(), &["keyboard"])["state"]["backup"], true);
+    ok(&["keyboard", "brightness", "9"]);
+    assert!(fails(&["keyboard", "brightness", "10"]).contains("brightness"));
+    assert!(
+        !legionctl(fs.path(), &["keyboard", "color", "#12"])
+            .status
+            .success()
+    );
+    ok(&["keyboard", "restore"]);
+    assert!(!root.exists(backup), "the saved effect is consumed");
+    assert!(fails(&["keyboard", "restore"]).contains("no saved original effect"));
+
+    // human output after enabling
+    let text = String::from_utf8(legionctl(fs.path(), &["keyboard"]).stdout).unwrap();
+    assert!(
+        text.contains("rainbow-wave") && text.contains("5 / 9"),
+        "{text}"
+    );
+    let out =
+        String::from_utf8(legionctl(fs.path(), &["--lang", "pt-BR", "keyboard"]).stdout).unwrap();
+    assert!(
+        out.contains("Iluminação do teclado") && out.contains("Brilho"),
+        "{out}"
+    );
+    // switching it off again
+    ok(&["config", "set", "enable_keyboard_rgb", "off"]);
+    assert_eq!(json(fs.path(), &["keyboard"])["enabled"], false);
+}
+
+#[test]
 fn custom_profiles() {
     let fs = fixtures::legion_5_15iax10();
     let cfg = std::env::temp_dir().join(format!("legionctl-cfg-{}", std::process::id()));

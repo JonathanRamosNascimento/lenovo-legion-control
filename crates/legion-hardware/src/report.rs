@@ -80,6 +80,9 @@ pub struct HardwareReport {
     pub cpu_info: CpuInfo,
     /// Memory.
     pub memory: Option<MemoryInfo>,
+    /// ITE USB HID interfaces (keyboard controller), for extending the
+    /// support matrix.
+    pub keyboard_controllers: Vec<legion_keyboard::NodeSummary>,
     /// Doctor results.
     pub doctor: DoctorReport,
 }
@@ -148,6 +151,7 @@ pub fn build_with(ctrl: &LinuxController, inv: Inventory) -> HardwareReport {
         gpu: inv.gpu,
         cpu_info: inv.cpu,
         memory: inv.memory,
+        keyboard_controllers: legion_keyboard::summarize(ctrl.root()),
         doctor,
     }
 }

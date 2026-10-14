@@ -5,6 +5,7 @@
 //! * [`LinuxController`] — the [`HardwareController`] implementation that
 //!   composes the per-subsystem crates;
 //! * [`capabilities`] — feature detection with evidence;
+//! * [`keyboard`] — keyboard backlight (experimental, vendor protocol);
 //! * [`doctor`] — `legionctl doctor`;
 //! * [`report`] — `legionctl hardware-scan` JSON report.
 //!
@@ -16,6 +17,7 @@ pub mod config;
 pub mod controller;
 pub mod custom;
 pub mod doctor;
+pub mod keyboard;
 pub mod memory;
 pub mod report;
 pub mod system;

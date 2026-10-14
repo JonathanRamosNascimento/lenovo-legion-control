@@ -6,6 +6,7 @@ use zbus::object_server::SignalEmitter;
 use zbus::{Connection, fdo, interface};
 
 use legion_core::HardwareController;
+use legion_core::keyboard::Rgb;
 use legion_core::model::FanMode;
 use legion_dbus::{actions, to_fdo};
 use legion_profiles::CustomProfile;
@@ -123,6 +124,15 @@ impl Manager {
         json(&pl)
     }
 
+    async fn get_keyboard_info(&self) -> fdo::Result<String> {
+        let info = self
+            .hw
+            .run(|w| w.ctrl().get_keyboard_info())
+            .await
+            .map_err(to_fdo)?;
+        json(&info)
+    }
+
     async fn set_profile(
         &self,
         #[zbus(header)] hdr: Header<'_>,
@@ -169,6 +179,41 @@ impl Manager {
         self.auth(conn, &hdr, actions::BATTERY).await?;
         self.change(&emitter, move |c| c.set_charge_threshold(end))
             .await
+    }
+
+    async fn set_keyboard_color(
+        &self,
+        #[zbus(header)] hdr: Header<'_>,
+        #[zbus(connection)] conn: &Connection,
+        #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
+        color: String,
+    ) -> fdo::Result<()> {
+        let color: Rgb = color.parse().map_err(to_fdo)?;
+        self.auth(conn, &hdr, actions::KEYBOARD).await?;
+        self.change(&emitter, move |c| c.set_keyboard_color(color))
+            .await
+    }
+
+    async fn set_keyboard_brightness(
+        &self,
+        #[zbus(header)] hdr: Header<'_>,
+        #[zbus(connection)] conn: &Connection,
+        #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
+        level: u8,
+    ) -> fdo::Result<()> {
+        self.auth(conn, &hdr, actions::KEYBOARD).await?;
+        self.change(&emitter, move |c| c.set_keyboard_brightness(level))
+            .await
+    }
+
+    async fn restore_keyboard(
+        &self,
+        #[zbus(header)] hdr: Header<'_>,
+        #[zbus(connection)] conn: &Connection,
+        #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
+    ) -> fdo::Result<()> {
+        self.auth(conn, &hdr, actions::KEYBOARD).await?;
+        self.change(&emitter, |c| c.restore_keyboard()).await
     }
 
     async fn set_fan_mode(

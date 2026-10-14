@@ -4,8 +4,11 @@
 # conservation_mode, fanN_target, firmware-attributes, cpufreq) are
 # root-owned. Everything else is locked down: no capabilities, no network,
 # read-only filesystem except /sys (ProtectKernelTunables is deliberately
-# off because /sys attributes are the whole point), no device access except
-# the NVIDIA control nodes used by NVML (read-only monitoring).
+# off because /sys attributes are the whole point) and its own state
+# directory, no device access except the NVIDIA control nodes used by NVML
+# (read-only monitoring) and hidraw (keyboard backlight; the daemon only
+# opens the one built-in controller it detected, and only when
+# "enable_keyboard_rgb" is on).
 #
 # Experimental features are configured in /etc/legion-control/daemon.json.
 
@@ -42,6 +45,9 @@ PrivateNetwork=yes
 DevicePolicy=closed
 DeviceAllow=/dev/nvidiactl rw
 DeviceAllow=/dev/nvidia0 rw
+# keyboard backlight (experimental). hidraw nodes are numbered dynamically,
+# so systemd can only allow the whole class
+DeviceAllow=char-hidraw rw
 ProtectKernelModules=yes
 ProtectKernelLogs=yes
 ProtectControlGroups=yes
@@ -61,6 +67,10 @@ SystemCallFilter=~@privileged @resources
 SystemCallFilter=@chown
 UMask=0077
 ConfigurationDirectory=legion-control
+# /var/lib/legion-control: the effect the keyboard had before Legion Control
+# first changed it (so it can be restored)
+StateDirectory=legion-control
+StateDirectoryMode=0700
 # the daemon persists experimental feature toggles (SetExperimental, polkit
 # action com.legion.Control.configure, admin password required)
 ReadWritePaths=/etc/legion-control

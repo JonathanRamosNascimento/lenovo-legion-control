@@ -170,6 +170,8 @@ pub struct Ui {
     epps: RefCell<Vec<String>>,
     turbo: adw::SwitchRow,
     custom: Rc<crate::custom_page::CustomPage>,
+    // keyboard page
+    keyboard: Rc<crate::keyboard_page::KeyboardPage>,
     // profiles page
     profiles_group: adw::PreferencesGroup,
     profile_rows: RefCell<Vec<gtk::Widget>>,
@@ -218,6 +220,7 @@ impl Ui {
             }
             Msg::Failed(m) => self.toast(&m),
             Msg::Busy(b) => self.spinner.set_visible(b),
+            Msg::Keyboard(report) => self.keyboard.update(&report),
         }
     }
 
@@ -813,6 +816,7 @@ pub fn build(app: &adw::Application, cmd: Sender<Cmd>, page_name: Option<&str>) 
 
     // ---------- chrome ----------
     let stack = adw::ViewStack::new();
+    let keyboard = crate::keyboard_page::KeyboardPage::new(cmd.clone());
     let custom = crate::custom_page::CustomPage::new(cmd.clone(), {
         let stack = stack.clone();
         move || stack.set_visible_child_name("fans")
@@ -832,6 +836,12 @@ pub fn build(app: &adw::Application, cmd: Sender<Cmd>, page_name: Option<&str>) 
             "custom",
             "Custom",
             "preferences-other-symbolic",
+        ),
+        (
+            &keyboard.root,
+            "keyboard",
+            "Keyboard",
+            "input-keyboard-symbolic",
         ),
         (&prof_page, "profiles", "Profiles", "document-save-symbolic"),
         (&caps_page, "hardware", "Hardware", "computer-symbolic"),
@@ -935,6 +945,7 @@ pub fn build(app: &adw::Application, cmd: Sender<Cmd>, page_name: Option<&str>) 
         epps: RefCell::new(vec![]),
         turbo,
         custom,
+        keyboard,
         profiles_group,
         profile_rows: RefCell::new(vec![]),
         profile_names: RefCell::new(None),

@@ -1,9 +1,13 @@
 post_install() {
   echo ">> Enable the daemon with:  sudo systemctl enable --now legion-control.service"
-  echo ">> Experimental fan control / power limits: /etc/legion-control/daemon.json"
+  echo ">> Experimental fan control / power limits / keyboard backlight: /etc/legion-control/daemon.json"
 }
 
 post_upgrade() {
+  # reload first: pacman runs this script BEFORE its own daemon-reload hook,
+  # and a service restarted with the old unit would miss new sandbox settings
+  # (e.g. StateDirectory=)
+  systemctl daemon-reload >/dev/null 2>&1 || true
   systemctl try-restart legion-control.service >/dev/null 2>&1 || true
 }
 

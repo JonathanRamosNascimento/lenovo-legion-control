@@ -397,8 +397,29 @@ pub(crate) const PT_BR: &[(&str, &str)] = &[
         "só tem efeito no perfil custom",
     ),
     (
-        "no keyboard LED class device (USB HID keyboard controllers are not probed)",
-        "nenhum LED de teclado (controladores USB HID de teclado não são sondados)",
+        "no keyboard LED class device and no built-in USB keyboard controller found",
+        "nenhum LED de teclado e nenhum controlador USB de teclado interno encontrado",
+    ),
+    (
+        "undocumented vendor protocol",
+        "protocolo proprietário não documentado",
+    ),
+    ("verified on this model", "verificado neste modelo"),
+    (
+        "profile stored in the keyboard (flash)",
+        "perfil gravado no próprio teclado (flash)",
+    ),
+    (
+        "original effect is backed up",
+        "o efeito original fica salvo em backup",
+    ),
+    (
+        "keyboard controller found but not in the verified list",
+        "controlador de teclado encontrado, mas fora da lista verificada",
+    ),
+    (
+        "keyboard controller does not match the expected protocol: {}",
+        "o controlador do teclado não corresponde ao protocolo esperado: {}",
     ),
     ("LED class device present", "dispositivo LED presente"),
     ("power profiles", "perfis de energia"),
@@ -752,6 +773,19 @@ pub(crate) const PT_BR: &[(&str, &str)] = &[
         "Charge threshold set to {}%",
         "Limite de carga alterado para {}%",
     ),
+    (
+        "could not save a backup of the keyboard's current effect ({}); nothing was changed. After an upgrade restart the service: sudo systemctl restart legion-control",
+        "não foi possível salvar um backup do efeito atual do teclado ({}); nada foi alterado. Após uma atualização, reinicie o serviço: sudo systemctl restart legion-control",
+    ),
+    // keyboard (must precede the generic "{} set to {}")
+    (
+        "Keyboard colour set to {}",
+        "Cor do teclado definida como {}",
+    ),
+    (
+        "Keyboard brightness set to {}",
+        "Brilho do teclado definido como {}",
+    ),
     ("{} set to {}", "{} alterado para {}"),
     (
         "Saved current settings to {}",
@@ -1043,6 +1077,80 @@ pub(crate) const PT_BR: &[(&str, &str)] = &[
         "Applied {} power settings",
         "{} ajustes de potência aplicados",
     ),
+    // keyboard backlight
+    ("Keyboard backlight", "Iluminação do teclado"),
+    ("Controller", "Controlador"),
+    ("enabled (experimental)", "ativado (experimental)"),
+    ("Brightness", "Brilho"),
+    ("Effect", "Efeito"),
+    ("Original effect saved", "Efeito original salvo"),
+    ("Keyboard effect restored", "Efeito do teclado restaurado"),
+    (
+        "keyboard lighting control is disabled",
+        "o controle da iluminação do teclado está desativado",
+    ),
+    (
+        "no built-in keyboard backlight controller found",
+        "nenhum controlador de iluminação do teclado interno encontrado",
+    ),
+    (
+        "the keyboard controller {} is not in the verified list",
+        "o controlador do teclado {} não está na lista verificada",
+    ),
+    (
+        "the keyboard controller ({}) does not declare itself compatible",
+        "o controlador do teclado ({}) não se declara compatível",
+    ),
+    (
+        "no saved original effect for keyboard profile {}",
+        "nenhum efeito original salvo para o perfil {} do teclado",
+    ),
+    (
+        "brightness must be 0..={}",
+        "o brilho deve estar entre 0 e {}",
+    ),
+    (
+        "invalid colour {} (use #rrggbb or one of: {})",
+        "cor inválida {} (use #rrggbb ou um destes nomes: {})",
+    ),
+    // keyboard page (GUI)
+    ("Keyboard", "Teclado"),
+    (
+        "Experimental. The colour is stored in the keyboard controller through a vendor protocol that Lenovo does not document. The effect the keyboard had is saved first and can be restored.",
+        "Experimental. A cor é gravada no controlador do teclado por um protocolo proprietário que a Lenovo não documenta. O efeito que o teclado tinha é salvo antes e pode ser restaurado.",
+    ),
+    (
+        "Enable keyboard control (experimental)",
+        "Ativar o controle do teclado (experimental)",
+    ),
+    (
+        "Asks for the administrator password",
+        "Pede a senha de administrador",
+    ),
+    ("Colour", "Cor"),
+    (
+        "One steady colour on the whole keyboard.",
+        "Uma cor fixa em todo o teclado.",
+    ),
+    ("Keyboard colour", "Cor do teclado"),
+    ("Custom colour", "Cor personalizada"),
+    ("Presets", "Predefinições"),
+    ("Restore the original effect", "Restaurar o efeito original"),
+    ("profile", "perfil"),
+    (
+        "Enable the experimental control above to use it.",
+        "Ative o controle experimental acima para usá-lo.",
+    ),
+    ("Waiting for the daemon…", "Aguardando o daemon…"),
+    ("white", "branco"),
+    ("red", "vermelho"),
+    ("orange", "laranja"),
+    ("yellow", "amarelo"),
+    ("green", "verde"),
+    ("cyan", "ciano"),
+    ("blue", "azul"),
+    ("purple", "roxo"),
+    ("pink", "rosa"),
     // generic, keep last
     ("{} · {}", "{} · {}"),
     ("{} [{}]", "{} [{}]"),
